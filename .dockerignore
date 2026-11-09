@@ -1,0 +1,13 @@
+
+.git
+.github
+.env
+.env.*
+!.env.example
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.log
+.gitignore.py
