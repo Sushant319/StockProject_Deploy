@@ -15,6 +15,20 @@ from langgraph.graph import StateGraph, START, END
 from langgraph.types import Send
 
 load_dotenv()
+
+import os
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+key = os.getenv("GROQ_API_KEY", "")
+
+logging.info(
+    "GROQ_API_KEY present=%s, length=%s",
+    bool(key),
+    len(key)
+)
+
 import os
 import logging
 
