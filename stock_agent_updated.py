@@ -17,6 +17,14 @@ from langgraph.types import Send
 load_dotenv()
 
 import os
+
+key = os.getenv("GROQ_API_KEY", "")
+
+print(
+    f"GROQ_DIAGNOSTIC: present={bool(key)}, length={len(key)}"
+)
+
+import os
 import logging
 
 logging.basicConfig(level=logging.INFO)
