@@ -1,10 +1,14 @@
 
-from fastapi import FastAPI, HTTPException
+import os
+import json
+import logging
+import hmac
+
+from fastapi import FastAPI, HTTPException, Security
+from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field
 from starlette.concurrency import run_in_threadpool
 from fastapi.responses import JSONResponse
-import json
-import logging
 
 from stock_agent_updated import graph
 
@@ -14,8 +18,35 @@ logger = logging.getLogger("stock-agent-api")
 app = FastAPI(
     title="Enterprise Stock Analysis Agent",
     description="LangGraph multi-agent stock analysis API",
-    version="1.0.0"
+    version="1.1.0"
 )
+
+# API authentication
+api_key_header = APIKeyHeader(
+    name="X-API-Key",
+    auto_error=False
+)
+
+
+def verify_api_key(api_key: str = Security(api_key_header)):
+    expected_key = os.getenv("STOCK_API_KEY")
+
+    if not expected_key:
+        logger.error("STOCK_API_KEY is not configured")
+        raise HTTPException(
+            status_code=503,
+            detail="API authentication is not configured"
+        )
+
+    if not api_key or not hmac.compare_digest(
+        api_key, expected_key
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing API key"
+        )
+
+    return True
 
 
 class StockRequest(BaseModel):
@@ -41,10 +72,12 @@ def health():
 
 
 @app.post("/analyze")
-async def analyze_stock(request: StockRequest):
-
+async def analyze_stock(
+    request: StockRequest,
+    authenticated: bool = Security(verify_api_key)
+):
     try:
-        logger.info("Received stock query: %s", request.query)
+        logger.info("Received stock analysis request")
 
         initial_state = {
             "query": request.query,
@@ -69,7 +102,6 @@ async def analyze_stock(request: StockRequest):
             "final_answer": result.get("final_answer")
         }
 
-        # Convert NumPy/Pandas values to JSON-safe representations.
         safe_response = json.loads(
             json.dumps(response, default=str)
         )
